@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* Remote cursor styling */
+.remote-cursor {
+  background: #a78bfa;
+  width: 2px !important;
+}
+
+.remote-cursor-label::before {
+  content: '';
+  display: block;
+  width: 2px;
+  height: 100%;
+  background: #a78bfa;
+}
