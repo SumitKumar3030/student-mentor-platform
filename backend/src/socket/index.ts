@@ -54,6 +54,7 @@ export function setupSocket(server: HTTPServer) {
     // ------------------------------------------------
     // JOIN ROOM
     // ------------------------------------------------
+
     socket.on("join_room", async (payload: JoinPayload) => {
       const { sessionId, userId, name, role } = payload;
 

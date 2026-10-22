@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { useRoomStore } from "@/store/roomStore";
@@ -7,7 +7,7 @@ import { getLanguage } from "@/lib/languages";
 import { getErrorMessage } from "@/lib/errors";
 import { useRoomSocket } from "@/hooks/useRoomSocket";
 import { toast } from "sonner";
-import { Loader2, LogOut, Copy, Check } from "lucide-react";
+import { Loader2, LogOut, Copy, Check, Code, Video, MessageSquare } from "lucide-react";
 import CodeEditor from "@/components/room/CodeEditor";
 import LanguagePicker from "@/components/room/LanguagePicker";
 import SessionTimer from "@/components/room/SessionTimer";
@@ -20,7 +20,6 @@ import { connectSocket } from "@/lib/socket";
 import { useRecording } from "@/hooks/useRecording";
 import RecordingControls from "@/components/room/RecordingControls";
 
-
 export default function Room() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
@@ -31,8 +30,7 @@ export default function Room() {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<"mentor" | "student" | null>(null);
   const [copied, setCopied] = useState(false);
-
-  const codeChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [mobileTab, setMobileTab] = useState<"code" | "video" | "chat">("code");
 
   // Load session
   useEffect(() => {
@@ -93,19 +91,20 @@ export default function Room() {
     load();
   }, [sessionId, user, navigate, setCode]);
 
-const handleSessionEnded = useCallback(() => {
-  toast.info('Session ended by mentor')
-  navigate('/dashboard')
-}, [navigate])
+  const handleSessionEnded = useCallback(() => {
+    toast.info("Session ended by mentor");
+    navigate("/dashboard");
+  }, [navigate]);
 
-const { emitCodeChange, emitCursorMove, emitLanguageChange } = useRoomSocket({
-  sessionId: sessionId || '',
-  userId: user?.id || '',
-  name: profile?.name || 'User',
-  role: role || 'student',
-  enabled: !!session && !!user && !!role,
-  onSessionEnded: handleSessionEnded,
-})
+  // 🔌 Socket
+  const { emitCodeChange, emitCursorMove, emitLanguageChange } = useRoomSocket({
+    sessionId: sessionId || "",
+    userId: user?.id || "",
+    name: profile?.name || "User",
+    role: role || "student",
+    enabled: !!session && !!user && !!role,
+    onSessionEnded: handleSessionEnded,
+  });
 
   const {
     localStream,
@@ -137,13 +136,18 @@ const { emitCodeChange, emitCursorMove, emitLanguageChange } = useRoomSocket({
 
   useAutoSnapshot(session?.id, !!session && !!role);
 
+  // Clear remote cursors only on true unmount
+  useEffect(() => {
+    return () => {
+      useRoomStore.getState().clearAllRemoteCursors();
+    };
+  }, []);
+
   // Auto-end when timer hits zero
   useEffect(() => {
     if (!session || role !== "mentor") return;
 
-    const endAt =
-      new Date(session.startedAt).getTime() +
-      session.durationMinutes * 60 * 1000;
+    const endAt = new Date(session.startedAt).getTime() + session.durationMinutes * 60 * 1000;
 
     const check = () => {
       if (Date.now() >= endAt) {
@@ -155,7 +159,7 @@ const { emitCodeChange, emitCursorMove, emitLanguageChange } = useRoomSocket({
       }
     };
 
-    const interval = setInterval(check, 5000); // check every 5s
+    const interval = setInterval(check, 5000);
     return () => clearInterval(interval);
   }, [session, role, user, language, code, navigate]);
 
@@ -167,16 +171,12 @@ const { emitCodeChange, emitCursorMove, emitLanguageChange } = useRoomSocket({
     };
   }, [isRecording, stopRecording]);
 
-  // Debounced code emit
-  const handleCodeChange = useCallback(
+     const handleCodeChange = useCallback(
     (newCode: string) => {
       setCode(newCode);
-      if (codeChangeTimerRef.current) clearTimeout(codeChangeTimerRef.current);
-      codeChangeTimerRef.current = setTimeout(() => {
-        emitCodeChange(newCode);
-      }, 150);
+      emitCodeChange(newCode);
     },
-    [setCode, emitCodeChange],
+    [setCode, emitCodeChange]
   );
 
   const handleCopyCode = () => {
@@ -225,11 +225,8 @@ const { emitCodeChange, emitCursorMove, emitLanguageChange } = useRoomSocket({
 
     try {
       await sessionsApi.end(session.id, user.id, language, code);
-
-      // Notify the other user via socket
       const socket = connectSocket();
       socket.emit("session_ended", { sessionId: session.id });
-
       toast.success("Session ended");
       navigate("/dashboard");
     } catch (err) {
@@ -237,21 +234,11 @@ const { emitCodeChange, emitCursorMove, emitLanguageChange } = useRoomSocket({
     }
   };
 
-  // Clear remote cursors only on true unmount
-useEffect(() => {
-  return () => {
-    useRoomStore.getState().clearAllRemoteCursors()
-  }
-}, [])
-
   if (loading || !session || !user) {
     return (
       <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
         <div className="text-center">
-          <Loader2
-            size={32}
-            className="animate-spin text-violet-400 mx-auto mb-4"
-          />
+          <Loader2 size={32} className="animate-spin text-violet-400 mx-auto mb-4" />
           <p className="text-neutral-400 text-sm">Loading session...</p>
         </div>
       </div>
@@ -262,53 +249,48 @@ useEffect(() => {
 
   return (
     <div className="h-screen flex flex-col bg-neutral-950 text-neutral-100 overflow-hidden">
-      <header className="h-14 flex items-center justify-between px-4 border-b border-neutral-800 bg-neutral-900">
-        <div className="flex items-center gap-4">
-          <div className="text-lg font-bold">
+      {/* HEADER */}
+      <header className="h-14 flex items-center justify-between px-2 md:px-4 border-b border-neutral-800 bg-neutral-900 shrink-0">
+        <div className="flex items-center gap-2 md:gap-4">
+          <div className="text-lg font-bold hidden sm:block">
             <span className="text-white">Code</span>
             <span className="text-violet-400">Mentor</span>
           </div>
 
-          <div className="h-6 w-px bg-neutral-800" />
+          <div className="h-6 w-px bg-neutral-800 hidden sm:block" />
 
           <button
             onClick={handleCopyCode}
-            className="flex items-center gap-2 px-2.5 py-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-lg text-sm font-mono transition-colors"
-            title="Copy session code"
+            className="flex items-center gap-2 px-2 md:px-2.5 py-1 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-lg text-xs md:text-sm font-mono transition-colors"
           >
             <span className="tracking-widest">{session.code}</span>
-            {copied ? (
-              <Check size={14} className="text-green-400" />
-            ) : (
-              <Copy size={14} />
-            )}
+            {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
           </button>
 
-          <SessionTimer
-            startedAt={session.startedAt}
-            durationMinutes={session.durationMinutes}
-          />
+          <SessionTimer startedAt={session.startedAt} durationMinutes={session.durationMinutes} />
 
           {role === "mentor" && (
-            <RecordingControls
-              isRecording={isRecording}
-              recordingDuration={recordingDuration}
-              onStart={handleStartRecording}
-              onStop={handleStopRecording}
-              disabled={!localStream || !remoteStream || !isConnected}
-            />
+            <div className="hidden sm:block">
+              <RecordingControls
+                isRecording={isRecording}
+                recordingDuration={recordingDuration}
+                onStart={handleStartRecording}
+                onStop={handleStopRecording}
+                disabled={!localStream || !remoteStream || !isConnected}
+              />
+            </div>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs px-2 py-1 rounded bg-violet-500/10 text-violet-300 uppercase font-semibold">
+        <div className="flex items-center gap-2 md:gap-3">
+          <span className="text-[10px] md:text-xs px-2 py-1 rounded bg-violet-500/10 text-violet-300 uppercase font-semibold">
             {role}
           </span>
 
           {role === "mentor" && (
             <button
               onClick={handleEndSession}
-              className="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded-lg text-sm font-medium transition-colors"
+              className="px-2 md:px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded-lg text-xs md:text-sm font-medium transition-colors"
             >
               End Session
             </button>
@@ -317,16 +299,18 @@ useEffect(() => {
           <button
             onClick={() => navigate("/dashboard")}
             className="p-2 hover:bg-neutral-800 rounded-lg transition-colors"
-            title="Leave room"
           >
             <LogOut size={18} />
           </button>
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex flex-col border-r border-neutral-800">
-          <div className="h-10 flex items-center justify-between px-3 border-b border-neutral-800 bg-neutral-900">
+      {/* BODY */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+        
+        {/* LEFT PANEL - CODE */}
+        <div className={`flex-1 flex-col border-r border-neutral-800 ${mobileTab === 'code' ? 'flex' : 'hidden md:flex'}`}>
+          <div className="h-10 flex items-center justify-between px-3 border-b border-neutral-800 bg-neutral-900 shrink-0">
             <div className="flex items-center gap-2 text-xs text-neutral-500 font-mono">
               <span>main.{getLanguage(language).extension}</span>
             </div>
@@ -336,20 +320,22 @@ useEffect(() => {
               disabled={role !== "mentor"}
             />
           </div>
-
-          <div className="flex-1">
+          <div className="flex-1 overflow-hidden">
             <CodeEditor
               monacoLanguage={monacoLang}
               value={code}
               onChange={handleCodeChange}
               onCursorMove={emitCursorMove}
-              readOnly={false}
+              readOnly={false} // Both can edit
             />
           </div>
         </div>
 
-        <div className="w-95 flex flex-col">
-          <div className="h-[45%]">
+        {/* RIGHT PANEL - VIDEO + CHAT */}
+        <div className={`w-full md:w-95 flex-col shrink-0 ${mobileTab !== 'code' ? 'flex' : 'hidden md:flex'}`}>
+          
+          {/* Video Container */}
+          <div className={`${mobileTab === 'video' ? 'flex-1' : 'hidden md:block md:h-[45%]'}`}>
             <VideoPanel
               localStream={localStream}
               remoteStream={remoteStream}
@@ -364,11 +350,31 @@ useEffect(() => {
               permissionError={permissionError}
             />
           </div>
-          <div className="flex-1 overflow-hidden">
+
+          {/* Chat Container */}
+          <div className={`flex-1 overflow-hidden ${mobileTab === 'chat' ? 'block' : 'hidden md:block'}`}>
             <ChatPanel sessionId={session.id} />
           </div>
         </div>
+
       </div>
+
+      {/* MOBILE TABS */}
+      <div className="md:hidden flex items-center justify-around border-t border-neutral-800 bg-neutral-900 h-14 shrink-0">
+        <button onClick={() => setMobileTab('code')} className={`flex flex-col items-center gap-1 p-2 ${mobileTab === 'code' ? 'text-violet-400' : 'text-neutral-500'}`}>
+          <Code size={20} />
+          <span className="text-[10px] font-medium">Code</span>
+        </button>
+        <button onClick={() => setMobileTab('video')} className={`flex flex-col items-center gap-1 p-2 ${mobileTab === 'video' ? 'text-violet-400' : 'text-neutral-500'}`}>
+          <Video size={20} />
+          <span className="text-[10px] font-medium">Video</span>
+        </button>
+        <button onClick={() => setMobileTab('chat')} className={`flex flex-col items-center gap-1 p-2 ${mobileTab === 'chat' ? 'text-violet-400' : 'text-neutral-500'}`}>
+          <MessageSquare size={20} />
+          <span className="text-[10px] font-medium">Chat</span>
+        </button>
+      </div>
+
     </div>
   );
 }

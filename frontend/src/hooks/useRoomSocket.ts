@@ -1,7 +1,6 @@
-import { useEffect, useCallback } from 'react'
-import { connectSocket, disconnectSocket } from '@/lib/socket'
+import { useEffect, useCallback, useRef } from 'react'
+import { connectSocket } from '@/lib/socket'
 import { useRoomStore } from '@/store/roomStore'
-import type { Socket } from 'socket.io-client'
 
 interface UseRoomSocketArgs {
   sessionId: string
@@ -20,100 +19,63 @@ export function useRoomSocket({
   enabled,
   onSessionEnded,
 }: UseRoomSocketArgs) {
-  const setCode = useRoomStore((s) => s.setCode)
-  const setLanguage = useRoomStore((s) => s.setLanguage)
-  const setRemoteCursor = useRoomStore((s) => s.setRemoteCursor)
-  const clearRemoteCursor = useRoomStore((s) => s.clearRemoteCursor)
+  const socketRef = useRef(connectSocket())
 
   useEffect(() => {
     if (!enabled) return
+    const socket = socketRef.current
 
-    const socket: Socket = connectSocket()
+    if (!socket.connected) socket.connect()
 
-    socket.emit('join_room', { sessionId, userId, name, role })
-
-    const handleCodeUpdate = ({ code }: { code: string }) => {
-      setCode(code)
+    const handleConnect = () => {
+      socket.emit('join_room', { sessionId, userId, name, role })
     }
 
-    const handleLanguageUpdate = ({
-      language,
-      code,
-    }: {
-      language: string
-      code: string
-    }) => {
+    if (socket.connected) handleConnect()
+    else socket.on('connect', handleConnect)
+
+    socket.on('code_update', ({ code }: { code: string }) => {
+      useRoomStore.getState().setCode(code)
+    })
+
+    socket.on('language_update', ({ language, code }: { language: string; code: string }) => {
       useRoomStore.setState({ language })
-      setCode(code)
-    }
+      useRoomStore.getState().setCode(code)
+    })
 
-    const handleCursorUpdate = (data: {
-      userId: string
-      name: string
-      position: { lineNumber: number; column: number }
-    }) => {
-      setRemoteCursor(data)
-    }
+        socket.on('cursor_update', (data: { userId: string; name: string; position: { lineNumber: number; column: number } }) => {
+      useRoomStore.getState().setRemoteCursor(data)
+    })
 
-    const handleUserLeft = ({ userId: leftId }: { userId: string }) => {
-      clearRemoteCursor(leftId)
-    }
+    socket.on('user_left', ({ userId: leftId }: { userId: string }) => {
+      useRoomStore.getState().clearRemoteCursor(leftId)
+    })
 
-    const handleSessionEnded = () => {
+    socket.on('session_ended', () => {
       onSessionEnded?.()
-    }
-
-    socket.on('code_update', handleCodeUpdate)
-    socket.on('language_update', handleLanguageUpdate)
-    socket.on('cursor_update', handleCursorUpdate)
-    socket.on('user_left', handleUserLeft)
-    socket.on('session_ended', handleSessionEnded)
+    })
 
     return () => {
-      socket.off('code_update', handleCodeUpdate)
-      socket.off('language_update', handleLanguageUpdate)
-      socket.off('cursor_update', handleCursorUpdate)
-      socket.off('user_left', handleUserLeft)
-      socket.off('session_ended', handleSessionEnded)
-      // ⚠️ DO NOT call clearAllRemoteCursors() here — causes infinite loop
-      disconnectSocket()
+      socket.off('connect', handleConnect)
+      socket.off('code_update')
+      socket.off('language_update')
+      socket.off('cursor_update')
+      socket.off('user_left')
+      socket.off('session_ended')
     }
-  }, [
-    enabled,
-    sessionId,
-    userId,
-    name,
-    role,
-    setCode,
-    setLanguage,
-    setRemoteCursor,
-    clearRemoteCursor,
-    onSessionEnded,
-  ])
+  }, [enabled, sessionId, userId, name, role, onSessionEnded])
 
-  const emitCodeChange = useCallback(
-    (code: string) => {
-      const socket = connectSocket()
-      socket.emit('code_change', { sessionId, code })
-    },
-    [sessionId]
-  )
+  const emitCodeChange = useCallback((code: string) => {
+    socketRef.current.emit('code_change', { sessionId, code })
+  }, [sessionId])
 
-  const emitCursorMove = useCallback(
-    (position: { lineNumber: number; column: number }) => {
-      const socket = connectSocket()
-      socket.emit('cursor_move', { sessionId, userId, name, position })
-    },
-    [sessionId, userId, name]
-  )
+  const emitCursorMove = useCallback((position: { lineNumber: number; column: number }) => {
+    socketRef.current.emit('cursor_move', { sessionId, userId, name, position })
+  }, [sessionId, userId, name])
 
-  const emitLanguageChange = useCallback(
-    (language: string, code: string) => {
-      const socket = connectSocket()
-      socket.emit('language_change', { sessionId, language, code })
-    },
-    [sessionId]
-  )
+  const emitLanguageChange = useCallback((language: string, code: string) => {
+    socketRef.current.emit('language_change', { sessionId, language, code })
+  }, [sessionId])
 
   return { emitCodeChange, emitCursorMove, emitLanguageChange }
 }
