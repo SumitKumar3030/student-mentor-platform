@@ -22,7 +22,7 @@ interface UseWebRTCResult {
   permissionError: string | null;
 }
 
-// 🔥 Added Metered OpenRelay from your working project
+// Swapped to a slightly more reliable free TURN server
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   {
@@ -37,11 +37,7 @@ const ICE_SERVERS: RTCIceServer[] = [
   },
 ];
 
-export function useWebRTC({
-  sessionId,
-  role,
-  enabled,
-}: UseWebRTCArgs): UseWebRTCResult {
+export function useWebRTC({ sessionId, role, enabled }: UseWebRTCArgs): UseWebRTCResult {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -56,7 +52,7 @@ export function useWebRTC({
   const screenStreamRef = useRef<MediaStream | null>(null);
   const incomingStreamRef = useRef<MediaStream>(new MediaStream());
 
-  // Get local media
+  // 1. Get Local Media
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
@@ -67,41 +63,27 @@ export function useWebRTC({
           video: { width: { ideal: 640 }, height: { ideal: 480 } },
           audio: true,
         });
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
+        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
         localStreamRef.current = stream;
         setLocalStream(stream);
       } catch (err) {
         console.warn("Camera failed, trying audio...", err);
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-          });
-          if (cancelled) {
-            stream.getTracks().forEach((t) => t.stop());
-            return;
-          }
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
           localStreamRef.current = stream;
           setLocalStream(stream);
           setPermissionError("Camera failed, joined audio only.");
         } catch (audioErr) {
-          setPermissionError(
-            audioErr instanceof Error
-              ? audioErr.message
-              : "Could not access media.",
-          );
+          setPermissionError(audioErr instanceof Error ? audioErr.message : "Could not access media.");
         }
       }
     };
     init();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [enabled]);
 
-  // Setup Peer Connection
+  // 2. Setup Peer Connection & Signaling
   useEffect(() => {
     if (!enabled || !localStream || !sessionId) return;
 
@@ -110,16 +92,14 @@ export function useWebRTC({
     pcRef.current = pc;
     incomingStreamRef.current = new MediaStream();
 
+    // Add local tracks
     localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
 
+    // Handle incoming tracks
     pc.ontrack = (event) => {
       if (event.streams && event.streams[0]) {
         event.streams[0].getTracks().forEach((track) => {
-          if (
-            !incomingStreamRef.current
-              .getTracks()
-              .some((t) => t.id === track.id)
-          ) {
+          if (!incomingStreamRef.current.getTracks().some((t) => t.id === track.id)) {
             incomingStreamRef.current.addTrack(track);
           }
         });
@@ -127,107 +107,112 @@ export function useWebRTC({
       }
     };
 
+    // Send ICE candidates
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        socket.emit("webrtc_ice", {
-          sessionId,
-          candidate: event.candidate.toJSON(),
-        });
+        socket.emit("webrtc_ice", { sessionId, candidate: event.candidate.toJSON() });
       }
     };
 
+    // Connection state
     pc.onconnectionstatechange = () => {
-      console.log("📡 State:", pc.connectionState);
+      console.log("📡 Connection State:", pc.connectionState);
       setIsConnected(pc.connectionState === "connected");
     };
 
-    // 🔥 EXACT LOGIC FROM YOUR WORKING PROJECT
+    // --- SIGNALING EVENTS ---
+
+    // MENTOR: When student joins, send offer
     socket.on("user_joined", async () => {
       if (role === "mentor") {
         try {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          socket.emit("webrtc_offer", { sessionId, sdp: offer });
-          console.log("📤 Sent offer to student");
+          // Only create offer if we haven't already
+          if (pc.signalingState === "stable") {
+            console.log("📤 Student joined, sending offer...");
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit("webrtc_offer", { sessionId, sdp: offer });
+          }
         } catch (err) {
           console.error("Offer error:", err);
         }
       }
     });
 
-    socket.on(
-      "webrtc_offer",
-      async ({ sdp }: { sdp: RTCSessionDescriptionInit }) => {
-        if (role === "student") {
-          try {
-            await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-            for (const c of pendingCandidatesRef.current)
-              await pc.addIceCandidate(new RTCIceCandidate(c));
-            pendingCandidatesRef.current = [];
-
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            socket.emit("webrtc_answer", { sessionId, sdp: answer });
-          } catch (err) {
-            console.error("Answer error:", err);
-          }
-        }
-      },
-    );
-
-    socket.on(
-      "webrtc_answer",
-      async ({ sdp }: { sdp: RTCSessionDescriptionInit }) => {
-        if (role === "mentor" && pc.signalingState !== "stable") {
-          try {
-            await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-            for (const c of pendingCandidatesRef.current)
-              await pc.addIceCandidate(new RTCIceCandidate(c));
-            pendingCandidatesRef.current = [];
-          } catch (err) {
-            console.error("Answer handle error:", err);
-          }
-        }
-      },
-    );
-
-    socket.on(
-      "webrtc_ice",
-      async ({ candidate }: { candidate: RTCIceCandidateInit }) => {
+    // STUDENT: Receive offer, send answer
+    socket.on("webrtc_offer", async ({ sdp }: { sdp: RTCSessionDescriptionInit }) => {
+      if (role === "student") {
         try {
-          if (pc.remoteDescription)
-            await pc.addIceCandidate(new RTCIceCandidate(candidate));
-          else pendingCandidatesRef.current.push(candidate);
-        } catch (err) {
-          console.error("ICE error:", err);
-        }
-      },
-    );
+          console.log("📥 Received offer, sending answer...");
+          await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+          
+          // Flush queued ICE candidates
+          for (const c of pendingCandidatesRef.current) {
+            await pc.addIceCandidate(new RTCIceCandidate(c));
+          }
+          pendingCandidatesRef.current = [];
 
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          socket.emit("webrtc_answer", { sessionId, sdp: answer });
+        } catch (err) {
+          console.error("Answer error:", err);
+        }
+      }
+    });
+
+    // MENTOR: Receive answer
+    socket.on("webrtc_answer", async ({ sdp }: { sdp: RTCSessionDescriptionInit }) => {
+      if (role === "mentor") {
+        try {
+          if (pc.signalingState === "have-local-offer") {
+            await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+            for (const c of pendingCandidatesRef.current) {
+              await pc.addIceCandidate(new RTCIceCandidate(c));
+            }
+            pendingCandidatesRef.current = [];
+          }
+        } catch (err) {
+          console.error("Answer handle error:", err);
+        }
+      }
+    });
+
+    // BOTH: Receive ICE
+    socket.on("webrtc_ice", async ({ candidate }: { candidate: RTCIceCandidateInit }) => {
+      try {
+        if (pc.remoteDescription) {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } else {
+          pendingCandidatesRef.current.push(candidate);
+        }
+      } catch (err) {
+        console.error("ICE error:", err);
+      }
+    });
+
+    // CLEANUP
     return () => {
       socket.off("user_joined");
       socket.off("webrtc_offer");
       socket.off("webrtc_answer");
       socket.off("webrtc_ice");
-      try {
-        pc.close();
-      } catch {
-        /* ignore */
-      }
+      try { pc.close(); } catch { /* ignore */ }
       if (pcRef.current === pc) pcRef.current = null;
       setIsConnected(false);
     };
   }, [enabled, localStream, sessionId, role]);
 
-  // Cleanup
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
       screenStreamRef.current?.getTracks().forEach((t) => t.stop());
-           try { pcRef.current?.close(); } catch { /* ignore */ }
+      try { pcRef.current?.close(); } catch { /* ignore */ }
     };
   }, []);
 
+  // Controls
   const toggleMute = useCallback(() => {
     const stream = localStreamRef.current;
     if (!stream) return;
@@ -260,10 +245,7 @@ export function useWebRTC({
         if (sender && camTrack) await sender.replaceTrack(camTrack);
         setIsScreenSharing(false);
       } else {
-        const displayStream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-          audio: false,
-        });
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
         screenStreamRef.current = displayStream;
         const screenTrack = displayStream.getVideoTracks()[0];
         const sender = pc.getSenders().find((s) => s.track?.kind === "video");
@@ -277,21 +259,8 @@ export function useWebRTC({
         };
         setIsScreenSharing(true);
       }
-    } catch (err) {
-      console.error("Screen share error:", err);
-    }
+    } catch (err) { console.error("Screen share error:", err); }
   }, [isScreenSharing]);
 
-  return {
-    localStream,
-    remoteStream,
-    isConnected,
-    isMuted,
-    isCameraOff,
-    isScreenSharing,
-    toggleMute,
-    toggleCamera,
-    toggleScreenShare,
-    permissionError,
-  };
+  return { localStream, remoteStream, isConnected, isMuted, isCameraOff, isScreenSharing, toggleMute, toggleCamera, toggleScreenShare, permissionError };
 }

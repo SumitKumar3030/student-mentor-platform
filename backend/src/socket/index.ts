@@ -59,6 +59,8 @@ export function setupSocket(server: HTTPServer) {
       const { sessionId, userId, name, role } = payload;
 
       socket.join(sessionId);
+          // Tell everyone else in the room that a new user joined
+    socket.to(sessionId).emit('user_joined', { userId, name, role })
 
       if (!rooms.has(sessionId)) rooms.set(sessionId, new Map());
       rooms.get(sessionId)!.set(socket.id, { userId, name, role });

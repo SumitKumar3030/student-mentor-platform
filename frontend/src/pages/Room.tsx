@@ -36,7 +36,9 @@ export default function Room() {
   useEffect(() => {
     if (!sessionId || !user) return;
 
-    const load = async () => {
+   const load = async () => {
+      useRoomStore.getState().reset(); // 🔥 ADD THIS LINE
+      setLoading(true); // ensure loader shows
       try {
         const { data, error } = await supabase
           .from("sessions")
@@ -332,7 +334,7 @@ export default function Room() {
         </div>
 
         {/* RIGHT PANEL - VIDEO + CHAT */}
-        <div className={`w-full md:w-95 flex-col shrink-0 ${mobileTab !== 'code' ? 'flex' : 'hidden md:flex'}`}>
+        <div className={`w-full md:w-[400px] flex-col md:flex shrink-0 ${mobileTab !== 'code' ? 'flex' : 'hidden md:flex'}`}>
           
           {/* Video Container */}
           <div className={`${mobileTab === 'video' ? 'flex-1' : 'hidden md:block md:h-[45%]'}`}>
