@@ -136,38 +136,33 @@ export function setupSocket(server: HTTPServer) {
       });
     });
 
-    // ------------------------------------------------
-    // WEBRTC SIGNALING
-    // ------------------------------------------------
-    socket.on(
-      "webrtc_offer",
-      (payload: { sessionId: string; sdp: unknown }) => {
-        socket.to(payload.sessionId).emit("webrtc_offer", {
-          sdp: payload.sdp,
-          from: socket.id,
-        });
-      },
-    );
 
-    socket.on(
-      "webrtc_answer",
-      (payload: { sessionId: string; sdp: unknown }) => {
-        socket.to(payload.sessionId).emit("webrtc_answer", {
-          sdp: payload.sdp,
-          from: socket.id,
-        });
-      },
-    );
+    // ------------------------------------------------
+// WEBRTC SIGNALING
+// ------------------------------------------------
+socket.on('webrtc_offer', (payload: { sessionId: string; sdp: unknown }) => {
+  console.log(`📥 Backend got OFFER from ${socket.id} for room ${payload.sessionId}`);
+  socket.to(payload.sessionId).emit('webrtc_offer', {
+    sdp: payload.sdp,
+    from: socket.id,
+  })
+})
 
-    socket.on(
-      "webrtc_ice",
-      (payload: { sessionId: string; candidate: unknown }) => {
-        socket.to(payload.sessionId).emit("webrtc_ice", {
-          candidate: payload.candidate,
-          from: socket.id,
-        });
-      },
-    );
+socket.on('webrtc_answer', (payload: { sessionId: string; sdp: unknown }) => {
+  console.log(`📥 Backend got ANSWER from ${socket.id} for room ${payload.sessionId}`);
+  socket.to(payload.sessionId).emit('webrtc_answer', {
+    sdp: payload.sdp,
+    from: socket.id,
+  })
+})
+
+socket.on('webrtc_ice', (payload: { sessionId: string; candidate: unknown }) => {
+  // console.log(`📥 Backend got ICE from ${socket.id}`); // Too spammy, leave commented
+  socket.to(payload.sessionId).emit('webrtc_ice', {
+    candidate: payload.candidate,
+    from: socket.id,
+  })
+})
 
         // ------------------------------------------------
     // SESSION ENDED (mentor triggers)

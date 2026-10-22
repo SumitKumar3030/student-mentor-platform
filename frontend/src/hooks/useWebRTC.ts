@@ -140,13 +140,32 @@ export function useWebRTC({ sessionId, role, enabled }: UseWebRTCArgs): UseWebRT
     });
 
     // STUDENT: Receive offer, send answer
+        // --- SIGNALING EVENTS ---
+
+    // MENTOR: When student joins, send offer
+    socket.on("user_joined", async () => {
+      if (role === "mentor") {
+        try {
+          if (pc.signalingState === "stable") {
+            console.log("📤 MENTOR: Student joined, creating offer...");
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit("webrtc_offer", { sessionId, sdp: offer });
+            console.log("📤 MENTOR: Offer sent to server.");
+          }
+        } catch (err) {
+          console.error("Offer error:", err);
+        }
+      }
+    });
+
+    // STUDENT: Receive offer, send answer
     socket.on("webrtc_offer", async ({ sdp }: { sdp: RTCSessionDescriptionInit }) => {
+      console.log("📥 STUDENT: Received offer from mentor.");
       if (role === "student") {
         try {
-          console.log("📥 Received offer, sending answer...");
           await pc.setRemoteDescription(new RTCSessionDescription(sdp));
           
-          // Flush queued ICE candidates
           for (const c of pendingCandidatesRef.current) {
             await pc.addIceCandidate(new RTCIceCandidate(c));
           }
@@ -155,6 +174,7 @@ export function useWebRTC({ sessionId, role, enabled }: UseWebRTCArgs): UseWebRT
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           socket.emit("webrtc_answer", { sessionId, sdp: answer });
+          console.log("📤 STUDENT: Answer sent to server.");
         } catch (err) {
           console.error("Answer error:", err);
         }
@@ -163,6 +183,7 @@ export function useWebRTC({ sessionId, role, enabled }: UseWebRTCArgs): UseWebRT
 
     // MENTOR: Receive answer
     socket.on("webrtc_answer", async ({ sdp }: { sdp: RTCSessionDescriptionInit }) => {
+      console.log("📥 MENTOR: Received answer from student.");
       if (role === "mentor") {
         try {
           if (pc.signalingState === "have-local-offer") {
@@ -171,6 +192,7 @@ export function useWebRTC({ sessionId, role, enabled }: UseWebRTCArgs): UseWebRT
               await pc.addIceCandidate(new RTCIceCandidate(c));
             }
             pendingCandidatesRef.current = [];
+            console.log("✅ MENTOR: Remote description set successfully.");
           }
         } catch (err) {
           console.error("Answer handle error:", err);
