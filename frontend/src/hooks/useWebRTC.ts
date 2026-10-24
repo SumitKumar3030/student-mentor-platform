@@ -122,17 +122,19 @@ export function useWebRTC({ sessionId, role, enabled }: UseWebRTCArgs): UseWebRT
 
     // --- SIGNALING EVENTS ---
 
-    // MENTOR: When student joins, send offer
+        // MENTOR: When student joins, send offer
     socket.on("user_joined", async () => {
       if (role === "mentor") {
         try {
-          // Only create offer if we haven't already
-          if (pc.signalingState === "stable") {
-            console.log("📤 Student joined, sending offer...");
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            socket.emit("webrtc_offer", { sessionId, sdp: offer });
-          }
+          // 🔥 FIX: If state is not stable, wait a tiny bit for React to finish
+          setTimeout(async () => {
+            if (pc.signalingState === "stable") {
+              console.log("📤 MENTOR: Student joined, creating offer...");
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              socket.emit("webrtc_offer", { sessionId, sdp: offer });
+            }
+          }, 500); 
         } catch (err) {
           console.error("Offer error:", err);
         }

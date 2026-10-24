@@ -200,16 +200,13 @@ export default function Room() {
     toast.success(`Switched to ${lang.label}`);
   };
 
-  const handleStartRecording = async () => {
-    if (!localStream || !remoteStream) {
-      toast.error("Video not ready — wait for both users to connect");
-      return;
-    }
+     const handleStartRecording = async () => {
     if (role !== "mentor") {
       toast.error("Only the mentor can start recording");
       return;
     }
-    await startRecording(localStream, remoteStream);
+    // Remove the localStream/remoteStream checks and arguments
+    await startRecording();
     toast.success("Recording started");
   };
 
