@@ -264,6 +264,9 @@ router.post('/:id/snapshot', async (req, res) => {
 // GET /api/sessions/history/:userId
 // Get past sessions for a user
 // ============================================
+// ============================================
+// GET /api/sessions/history/:userId
+// ============================================
 router.get('/history/:userId', async (req, res) => {
   try {
     const { userId } = req.params
@@ -272,13 +275,13 @@ router.get('/history/:userId', async (req, res) => {
     const { data: sessions, error } = await supabase
       .from('sessions')
       .select(`
-        id, title, code, status, started_at, ended_at, mentor_id, student_id,
+        id, title, code, status, started_at, ended_at, duration_minutes, mentor_id, student_id,
         mentor:profiles!sessions_mentor_id_fkey(name),
         student:profiles!sessions_student_id_fkey(name)
       `)
       .or(`mentor_id.eq.${userId},student_id.eq.${userId}`)
       .order('started_at', { ascending: false })
-      .limit(10)
+      .limit(20) // Increased to 20 for the scrollable box
 
     if (error) return res.status(500).json({ error: error.message })
 
@@ -289,12 +292,9 @@ router.get('/history/:userId', async (req, res) => {
       .select('session_id, share_token, duration_seconds')
       .in('session_id', sessionIds)
 
-    // Map recordings to sessions
     const recordingsMap = new Map()
     recordings?.forEach(r => {
-      if (!recordingsMap.has(r.session_id)) {
-        recordingsMap.set(r.session_id, r)
-      }
+      if (!recordingsMap.has(r.session_id)) recordingsMap.set(r.session_id, r)
     })
 
     const formatted = sessions.map(s => ({
@@ -304,13 +304,28 @@ router.get('/history/:userId', async (req, res) => {
       status: s.status,
       startedAt: s.started_at,
       endedAt: s.ended_at,
+      durationMinutes: s.duration_minutes,
       role: s.mentor_id === userId ? 'mentor' : 'student',
       mentorName: (s.mentor as any)?.name || 'Unknown',
       studentName: (s.student as any)?.name || null,
       recording: recordingsMap.get(s.id) || null
     }))
 
-    return res.json(formatted)
+    // Calculate Stats
+    const isMentor = sessions.some(s => s.mentor_id === userId)
+    const totalSessions = sessions.length
+    const totalMinutes = sessions.reduce((acc, s) => acc + (s.duration_minutes || 0), 0)
+    const totalRecordings = formatted.filter(s => s.recording).length
+
+    return res.json({
+      sessions: formatted,
+      stats: {
+        totalSessions,
+        totalMinutes,
+        totalRecordings,
+        role: isMentor ? 'Mentor' : 'Student'
+      }
+    })
   } catch (err: unknown) {
     return res.status(500).json({ error: getMessage(err) })
   }

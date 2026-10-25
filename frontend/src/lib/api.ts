@@ -77,6 +77,26 @@ export const sessionsApi = {
       body: JSON.stringify({ language, code }),
     }),
 
-  history: (userId: string) =>
-    request<HistorySession[]>(`/api/sessions/history/${userId}`),
+    history: (userId: string) =>
+    request<{
+      sessions: Array<{
+        id: string;
+        title: string;
+        code: string;
+        status: string;
+        startedAt: string;
+        endedAt: string | null;
+        durationMinutes: number;
+        role: string;
+        mentorName: string;
+        studentName: string | null;
+        recording: { share_token: string; duration_seconds: number } | null;
+      }>;
+      stats: {
+        totalSessions: number;
+        totalMinutes: number;
+        totalRecordings: number;
+        role: string;
+      }
+    }>(`/api/sessions/history/${userId}`),
 }
