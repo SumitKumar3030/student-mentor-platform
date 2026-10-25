@@ -1,0 +1,33 @@
+right now i have this for brand and this for app: <svg xmlns="http://w3.org" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Vibrant Tech Gradient (Electric Blue to Neon Orange/Coral) -->
+    <linearGradient id="pairPulseGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00C6FF" />
+      <stop offset="60%" stop-color="#0072FF" />
+      <stop offset="100%" stop-color="#FF5722" />
+    </linearGradient>
+    
+    <!-- Subtle drop shadow to make the icon pop on both dark and light browser tabs -->
+    <filter id="tabDropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Connected Pulse Waves / Stylized 'P' Monogram -->
+  <g filter="url(#tabDropShadow)">
+    <path 
+      d="M96 352V160C96 115.817 131.817 80 176 80H288C354.274 80 408 133.726 408 200C408 266.274 354.274 320 288 320H160M160 224H320M96 288L144 240L208 304L272 208L336 272L384 224" 
+      fill="none" 
+      stroke="url(#pairPulseGrad)" 
+      stroke-width="36" 
+      stroke-linecap="round" 
+      stroke-linejoin="round"
+    />
+    
+    <!-- Mentor Node (Top Right Connection Point) -->
+    <circle cx="288" cy="80" r="14" fill="#FF5722" />
+    
+    <!-- Student Node (Bottom Left Connection Point) -->
+    <circle cx="96" cy="352" r="14" fill="#00C6FF" />
+  </g>
+</svg>
