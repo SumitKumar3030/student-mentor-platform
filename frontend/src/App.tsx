@@ -1,12 +1,13 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import Login from '@/pages/Login'
-import Signup from '@/pages/Signup'
-import ForgotPassword from '@/pages/ForgotPassword'
-import ResetPassword from '@/pages/ResetPassword'
-import Dashboard from '@/pages/Dashboard'
-import JoinBySlug from '@/pages/JoinBySlug'
-import Room from '@/pages/Room'
-import ProtectedRoute from '@/components/ProtectedRoute'
+import { Routes, Route, Navigate } from "react-router-dom";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
+import Dashboard from "@/pages/Dashboard";
+import JoinBySlug from "@/pages/JoinBySlug";
+import Room from "@/pages/Room";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import WatchRecording from "@/pages/WatchRecording";
 
 function App() {
   return (
@@ -23,9 +24,11 @@ function App() {
         <Route path="/room/:sessionId" element={<Room />} />
       </Route>
 
+      <Route path="/watch/:token" element={<WatchRecording />} />
+
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
-  )
+  );
 }
 
-export default App
+export default App;

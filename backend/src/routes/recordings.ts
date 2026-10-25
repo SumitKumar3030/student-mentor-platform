@@ -137,4 +137,50 @@ router.get('/session/:sessionId', async (req, res) => {
   }
 })
 
+// ============================================
+// GET /api/recordings/watch/:token
+// Get a secure, temporary URL for a recording
+// ============================================
+router.get('/watch/:token', async (req, res) => {
+  try {
+    const { token } = req.params
+
+    // 1. Find the recording in the DB
+    const { data: recording, error } = await supabase
+      .from('recordings')
+      .select('*')
+      .eq('share_token', token)
+      .maybeSingle()
+
+    if (error || !recording) {
+      return res.status(404).json({ error: 'Recording not found or link expired' })
+    }
+
+    if (recording.status !== 'ready') {
+      return res.status(400).json({ error: 'Recording is still processing' })
+    }
+
+    // 2. Generate a signed URL valid for 1 hour (3600 seconds)
+    const { data: signedData, error: signError } = await supabase.storage
+      .from('recordings')
+      .createSignedUrl(recording.storage_path, 3600)
+
+    if (signError || !signedData) {
+      console.error('Sign URL error:', signError)
+      return res.status(500).json({ error: 'Could not generate video link' })
+    }
+
+    // 3. Return the video URL and metadata
+    return res.json({
+      id: recording.id,
+      videoUrl: signedData.signedUrl,
+      durationSeconds: recording.duration_seconds,
+      createdAt: recording.created_at,
+    })
+  } catch (err: unknown) {
+    console.error('watch threw:', err)
+    return res.status(500).json({ error: getMessage(err) })
+  }
+})
+
 export default router
