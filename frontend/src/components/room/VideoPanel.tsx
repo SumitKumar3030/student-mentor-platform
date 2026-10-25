@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Mic, MicOff, Video, VideoOff, Monitor, MonitorOff } from 'lucide-react'
+import { Mic, MicOff, Video, VideoOff, Monitor, MonitorOff, PhoneOff } from 'lucide-react'
 
 interface Props {
   localStream: MediaStream | null
@@ -11,6 +11,7 @@ interface Props {
   onToggleMute: () => void
   onToggleCamera: () => void
   onToggleScreenShare: () => void
+  onEndSession?: () => void
   role: 'mentor' | 'student'
   permissionError: string | null
 }
@@ -25,81 +26,72 @@ export default function VideoPanel({
   onToggleMute,
   onToggleCamera,
   onToggleScreenShare,
+  onEndSession,
   role,
   permissionError,
 }: Props) {
   const localVideoRef = useRef<HTMLVideoElement>(null)
   const remoteVideoRef = useRef<HTMLVideoElement>(null)
 
- // Attach local stream
-useEffect(() => {
-  const video = localVideoRef.current
-  if (video && localStream) {
-    video.srcObject = localStream
-    video.play().catch(() => {/* autoplay blocked */})
-  }
-}, [localStream])
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream
+    }
+  }, [localStream])
 
-// Attach remote stream — also re-run when isConnected changes
-// because <video> only renders when isConnected is true
-useEffect(() => {
-  const video = remoteVideoRef.current
-  if (video && remoteStream) {
-    video.srcObject = remoteStream
-    video.play().catch(() => {/* autoplay blocked */})
-  }
-}, [remoteStream, isConnected])
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream
+    }
+  }, [remoteStream, isConnected])
 
   if (permissionError) {
     return (
-      <div className="h-full flex items-center justify-center p-4 bg-neutral-900 border-b border-neutral-800">
-        <div className="text-center">
-          <div className="text-4xl mb-2">🚫</div>
-          <p className="text-sm text-red-400 mb-2">Camera access failed</p>
-          <p className="text-xs text-neutral-500 max-w-50">{permissionError}</p>
+      <div className="h-full w-full flex flex-col items-center justify-center p-6 bg-neutral-900 border-b border-neutral-800">
+        <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+          <VideoOff size={32} className="text-red-400" />
         </div>
+        <p className="text-white font-medium mb-1">Camera Access Failed</p>
+        <p className="text-xs text-neutral-400 text-center max-w-[250px]">{permissionError}</p>
       </div>
     )
   }
 
   return (
-    <div className="h-full flex flex-col p-3 bg-neutral-900 border-b border-neutral-800">
-      <div className="flex-1 flex gap-3 min-h-0">
-        {/* Self video */}
-        <div className="flex-1 bg-neutral-950 rounded-lg border border-neutral-800 relative overflow-hidden">
+    <div className="h-full w-full flex flex-col p-2 md:p-3 bg-neutral-900 border-b border-neutral-800 relative">
+      
+      {/* Video Grid */}
+      <div className="flex-1 flex gap-2 md:gap-3 min-h-0">
+        
+        {/* Self Video */}
+        <div className="flex-1 bg-neutral-950 rounded-xl border border-neutral-800 relative overflow-hidden group">
           <video
             ref={localVideoRef}
             autoPlay
             playsInline
             muted
-            className={`w-full h-full object-cover ${isCameraOff || isScreenSharing ? 'hidden' : ''}`}
+            className={`w-full h-full object-cover transition-opacity duration-300 ${isCameraOff || isScreenSharing ? 'opacity-0' : 'opacity-100'}`}
           />
 
           {(isCameraOff || isScreenSharing) && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-14 h-14 rounded-full bg-neutral-800 flex items-center justify-center">
-                {isScreenSharing ? (
-                  <Monitor size={24} className="text-violet-400" />
-                ) : (
-                  <VideoOff size={24} className="text-neutral-500" />
-                )}
+            <div className="absolute inset-0 flex items-center justify-center bg-neutral-900">
+              <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center">
+                {isScreenSharing ? <Monitor size={20} className="text-brand-400" /> : <VideoOff size={20} className="text-neutral-500" />}
               </div>
             </div>
           )}
 
-          <span className="absolute bottom-2 left-2 text-[10px] uppercase font-semibold bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded backdrop-blur">
-            You ({role})
-          </span>
-
-          {isMuted && (
-            <div className="absolute top-2 right-2 p-1 bg-red-500/80 rounded">
-              <MicOff size={12} className="text-white" />
-            </div>
-          )}
+          {/* Name Tag */}
+          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+            <span className="text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+              You ({role})
+              {isMuted && <MicOff size={10} className="text-red-400" />}
+            </span>
+          </div>
         </div>
 
-        {/* Remote video */}
-        <div className="flex-1 bg-neutral-950 rounded-lg border border-neutral-800 relative overflow-hidden">
+        {/* Remote Video */}
+        <div className="flex-1 bg-neutral-950 rounded-xl border border-neutral-800 relative overflow-hidden">
           {isConnected && remoteStream ? (
             <video
               ref={remoteVideoRef}
@@ -108,69 +100,74 @@ useEffect(() => {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="w-14 h-14 rounded-full bg-neutral-800 flex items-center justify-center mb-2">
-                <VideoOff size={24} className="text-neutral-600" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900">
+              <div className="w-12 h-12 rounded-full bg-neutral-800 flex items-center justify-center mb-2 animate-pulse">
+                <VideoOff size={20} className="text-neutral-600" />
               </div>
-              <p className="text-xs text-neutral-500">
-                {role === 'mentor' ? 'Waiting for student...' : 'Waiting for mentor...'}
+              <p className="text-[10px] font-medium text-neutral-500 uppercase tracking-widest">
+                Waiting...
               </p>
             </div>
           )}
 
-          <span className="absolute bottom-2 left-2 text-[10px] uppercase font-semibold bg-neutral-700/70 text-neutral-300 px-2 py-0.5 rounded backdrop-blur">
-            {isConnected ? (role === 'mentor' ? 'Student' : 'Mentor') : 'Waiting'}
-          </span>
+          {isConnected && remoteStream && (
+            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+              <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                {role === 'mentor' ? 'Student' : 'Mentor'}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-2 mt-3">
-        <button
-          onClick={onToggleMute}
-          className={`p-2.5 rounded-full transition-colors ${
-            isMuted
-              ? 'bg-red-600 hover:bg-red-500'
-              : 'bg-neutral-800 hover:bg-neutral-700'
-          }`}
-          title={isMuted ? 'Unmute' : 'Mute'}
-        >
-          {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
-        </button>
-
-        <button
-          onClick={onToggleCamera}
-          className={`p-2.5 rounded-full transition-colors ${
-            isCameraOff
-              ? 'bg-red-600 hover:bg-red-500'
-              : 'bg-neutral-800 hover:bg-neutral-700'
-          }`}
-          title={isCameraOff ? 'Turn camera on' : 'Turn camera off'}
-        >
-          {isCameraOff ? <VideoOff size={16} /> : <Video size={16} />}
-        </button>
-
-        <button
-          onClick={onToggleScreenShare}
-          className={`p-2.5 rounded-full transition-colors ${
-            isScreenSharing
-              ? 'bg-violet-600 hover:bg-violet-500'
-              : 'bg-neutral-800 hover:bg-neutral-700'
-          }`}
-          title={isScreenSharing ? 'Stop sharing' : 'Share screen'}
-        >
-          {isScreenSharing ? <MonitorOff size={16} /> : <Monitor size={16} />}
-        </button>
-
-        <div className="ml-2 flex items-center gap-1.5 text-[10px]">
-          <div
-            className={`w-1.5 h-1.5 rounded-full ${
-              isConnected ? 'bg-green-500 animate-pulse' : 'bg-neutral-600'
-            }`}
-          />
-          <span className="text-neutral-500">
-            {isConnected ? 'Connected' : 'Connecting...'}
+      {/* Controls Bar */}
+      <div className="mt-3 flex items-center justify-between px-2">
+        
+        {/* Connection Status */}
+        <div className="flex items-center gap-2 bg-neutral-950 px-3 py-1.5 rounded-full border border-neutral-800">
+          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
+          <span className="text-[10px] font-medium text-neutral-400 uppercase tracking-wider">
+            {isConnected ? 'Connected' : 'Connecting'}
           </span>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex items-center gap-1.5 md:gap-2">
+          <button
+            onClick={onToggleMute}
+            className={`p-2.5 rounded-xl transition-all ${
+              isMuted ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-neutral-800 text-white hover:bg-neutral-700'
+            }`}
+          >
+            {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
+          </button>
+
+          <button
+            onClick={onToggleCamera}
+            className={`p-2.5 rounded-xl transition-all ${
+              isCameraOff ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-neutral-800 text-white hover:bg-neutral-700'
+            }`}
+          >
+            {isCameraOff ? <VideoOff size={16} /> : <Video size={16} />}
+          </button>
+
+          <button
+            onClick={onToggleScreenShare}
+            className={`p-2.5 rounded-xl transition-all ${
+              isScreenSharing ? 'bg-brand-500/20 text-brand-400 hover:bg-brand-500/30' : 'bg-neutral-800 text-white hover:bg-neutral-700'
+            }`}
+          >
+            {isScreenSharing ? <MonitorOff size={16} /> : <Monitor size={16} />}
+          </button>
+          
+          {onEndSession && (
+            <button
+              onClick={onEndSession}
+              className="p-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white transition-all ml-1"
+            >
+              <PhoneOff size={16} />
+            </button>
+          )}
         </div>
       </div>
     </div>
