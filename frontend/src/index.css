@@ -1,15 +1,45 @@
 @import "tailwindcss";
 
-/* Remote cursor styling */
-.remote-cursor {
-  background: #a78bfa;
-  width: 2px !important;
+@theme {
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-900: #312e81;
 }
 
+@layer base {
+  body {
+    @apply bg-[#0a0a0a] text-neutral-200 antialiased selection:bg-brand-500/30 selection:text-brand-100;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #404040;
+}
+
+/* Remote Cursor styling (for Monaco) */
+.remote-cursor {
+  background: #818cf8;
+  width: 2px !important;
+}
 .remote-cursor-label::before {
   content: '';
   display: block;
   width: 2px;
   height: 100%;
-  background: #a78bfa;
+  background: #818cf8;
 }

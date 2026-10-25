@@ -8,6 +8,8 @@ import JoinBySlug from "@/pages/JoinBySlug";
 import Room from "@/pages/Room";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import WatchRecording from "@/pages/WatchRecording";
+import Landing from "@/pages/Landing";
+
 
 function App() {
   return (
@@ -25,8 +27,7 @@ function App() {
       </Route>
 
       <Route path="/watch/:token" element={<WatchRecording />} />
-
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Landing />} />
     </Routes>
   );
 }
