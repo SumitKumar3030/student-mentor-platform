@@ -30,13 +30,26 @@ export interface SessionInfo {
   startedAt: string
 }
 
+export interface HistorySession {
+  id: string
+  title: string
+  code: string
+  status: string
+  startedAt: string
+  endedAt: string | null
+  role: string
+  mentorName: string
+  studentName: string | null
+  recording: { share_token: string; duration_seconds: number } | null
+}
+
 export const sessionsApi = {
-  create: (userId: string, language: string, durationMinutes: number) =>
+  create: (userId: string, title: string, language: string, durationMinutes: number) =>
     request<{ id: string; code: string; joinToken: string; language: string; durationMinutes: number }>(
       '/api/sessions/create',
       {
         method: 'POST',
-        body: JSON.stringify({ userId, language, durationMinutes }),
+        body: JSON.stringify({ userId, title, language, durationMinutes }),
       }
     ),
 
@@ -63,4 +76,7 @@ export const sessionsApi = {
       method: 'POST',
       body: JSON.stringify({ language, code }),
     }),
+
+  history: (userId: string) =>
+    request<HistorySession[]>(`/api/sessions/history/${userId}`),
 }

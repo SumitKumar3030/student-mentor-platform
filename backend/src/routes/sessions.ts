@@ -14,7 +14,9 @@ const router = Router()
 // ============================================
 // Validation schemas
 // ============================================
+
 const createSchema = z.object({
+  title: z.string().min(1).max(100).default('Untitled Session'),
   language: z.string().min(1).default('javascript'),
   durationMinutes: z.number().int().min(5).max(180).default(60),
 })
@@ -37,7 +39,7 @@ router.post('/create', async (req, res) => {
       return res.status(400).json({ error: parsed.error.issues[0].message })
     }
 
-    const { language, durationMinutes } = parsed.data
+    const { title, language, durationMinutes } = parsed.data
 
     const code = await generateUniqueCode()
     const joinToken = generateJoinToken()
@@ -48,6 +50,7 @@ router.post('/create', async (req, res) => {
         code,
         join_token: joinToken,
         mentor_id: userId,
+        title,
         language,
         duration_minutes: durationMinutes,
         status: 'active',
@@ -257,5 +260,60 @@ router.post('/:id/snapshot', async (req, res) => {
 // (already exists — but now also saves final snapshot)
 // ============================================
 
+// ============================================
+// GET /api/sessions/history/:userId
+// Get past sessions for a user
+// ============================================
+router.get('/history/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params
+
+    // Get sessions where user is mentor OR student
+    const { data: sessions, error } = await supabase
+      .from('sessions')
+      .select(`
+        id, title, code, status, started_at, ended_at, mentor_id, student_id,
+        mentor:profiles!sessions_mentor_id_fkey(name),
+        student:profiles!sessions_student_id_fkey(name)
+      `)
+      .or(`mentor_id.eq.${userId},student_id.eq.${userId}`)
+      .order('started_at', { ascending: false })
+      .limit(10)
+
+    if (error) return res.status(500).json({ error: error.message })
+
+    // Get recordings for these sessions
+    const sessionIds = sessions.map(s => s.id)
+    const { data: recordings } = await supabase
+      .from('recordings')
+      .select('session_id, share_token, duration_seconds')
+      .in('session_id', sessionIds)
+
+    // Map recordings to sessions
+    const recordingsMap = new Map()
+    recordings?.forEach(r => {
+      if (!recordingsMap.has(r.session_id)) {
+        recordingsMap.set(r.session_id, r)
+      }
+    })
+
+    const formatted = sessions.map(s => ({
+      id: s.id,
+      title: s.title,
+      code: s.code,
+      status: s.status,
+      startedAt: s.started_at,
+      endedAt: s.ended_at,
+      role: s.mentor_id === userId ? 'mentor' : 'student',
+      mentorName: (s.mentor as any)?.name || 'Unknown',
+      studentName: (s.student as any)?.name || null,
+      recording: recordingsMap.get(s.id) || null
+    }))
+
+    return res.json(formatted)
+  } catch (err: unknown) {
+    return res.status(500).json({ error: getMessage(err) })
+  }
+})
 
 export default router
