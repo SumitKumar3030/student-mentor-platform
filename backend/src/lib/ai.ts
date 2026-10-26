@@ -16,7 +16,7 @@ export async function generateSessionSummary(
 
   try {
     // Using gemini-pro as it is universally available on the free tier
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' })
 
     const chatContext = chatMessages
       .map((m) => `${m.name}: ${m.content}`)
