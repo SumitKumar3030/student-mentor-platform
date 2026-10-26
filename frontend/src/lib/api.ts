@@ -91,6 +91,7 @@ export const sessionsApi = {
         mentorName: string;
         studentName: string | null;
         recording: { share_token: string; duration_seconds: number } | null;
+        aiSummary: string | null;
       }>;
       stats: {
         totalSessions: number;

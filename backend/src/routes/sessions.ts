@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { supabase } from '../lib/supabase.js'
 import { generateUniqueCode, generateJoinToken } from '../lib/codes.js'
 import { z } from 'zod'
+import { generateSessionSummary } from '../lib/ai.js'
 
 function getMessage(err: unknown): string {
   if (err instanceof Error) return err.message
@@ -209,10 +210,33 @@ router.post('/:id/end', async (req, res) => {
       if (snapErr) console.error('final snapshot error:', snapErr)
     }
 
-    // Mark session ended
+     // 🧠 AI GENERATION
+    let aiSummary = null
+    if (language && code) {
+      // 1. Fetch chat messages
+      const { data: messages } = await supabase
+        .from('messages')
+        .select('content, user_id, profiles(name)')
+        .eq('session_id', id)
+        .order('created_at', { ascending: true })
+
+      const formattedMessages = (messages || []).map((m: any) => ({
+        name: m.profiles?.name || 'User',
+        content: m.content
+      }))
+
+      // 2. Generate summary
+      aiSummary = await generateSessionSummary(formattedMessages, code, language)
+    }
+
+    // 3. Mark session ended + save summary
     const { error } = await supabase
       .from('sessions')
-      .update({ status: 'ended', ended_at: new Date().toISOString() })
+      .update({ 
+        status: 'ended', 
+        ended_at: new Date().toISOString(),
+        ai_summary: aiSummary // <-- Save to DB
+      })
       .eq('id', id)
       .eq('mentor_id', userId)
 
@@ -275,7 +299,7 @@ router.get('/history/:userId', async (req, res) => {
     const { data: sessions, error } = await supabase
       .from('sessions')
       .select(`
-        id, title, code, status, started_at, ended_at, duration_minutes, mentor_id, student_id,
+        id, title, code, status, started_at, ended_at, duration_minutes, mentor_id, student_id, ai_summary,
         mentor:profiles!sessions_mentor_id_fkey(name),
         student:profiles!sessions_student_id_fkey(name)
       `)
@@ -308,7 +332,8 @@ router.get('/history/:userId', async (req, res) => {
       role: s.mentor_id === userId ? 'mentor' : 'student',
       mentorName: (s.mentor as any)?.name || 'Unknown',
       studentName: (s.student as any)?.name || null,
-      recording: recordingsMap.get(s.id) || null
+      recording: recordingsMap.get(s.id) || null,
+      aiSummary: s.ai_summary,
     }))
 
     // Calculate Stats
