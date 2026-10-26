@@ -2,12 +2,12 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { useRoomStore } from "@/store/roomStore";
-import { sessionsApi, type SessionInfo } from "@/lib/api";
+import { sessionsApi, aiApi, type SessionInfo } from "@/lib/api";
 import { getLanguage } from "@/lib/languages";
 import { getErrorMessage } from "@/lib/errors";
 import { useRoomSocket } from "@/hooks/useRoomSocket";
 import { toast } from "sonner";
-import { Loader2, LogOut, Copy, Check, Code, Video, MessageSquare } from "lucide-react";
+import { Loader2, LogOut, Copy, Check, Code, Video, MessageSquare, X } from "lucide-react";
 import CodeEditor from "@/components/room/CodeEditor";
 import LanguagePicker from "@/components/room/LanguagePicker";
 import SessionTimer from "@/components/room/SessionTimer";
@@ -33,6 +33,9 @@ export default function Room() {
   const [role, setRole] = useState<"mentor" | "student" | null>(null);
   const [copied, setCopied] = useState(false);
   const [mobileTab, setMobileTab] = useState<"code" | "video" | "chat">("code");
+
+  const [explanation, setExplanation] = useState<string | null>(null)
+  const [isExplaining, setIsExplaining] = useState(false)
 
   // Inside the component:
 useWakeLock()
@@ -108,6 +111,20 @@ useWakeLock()
 
     load();
   }, [sessionId, user, navigate, setCode]);
+
+    const handleExplainCode = async () => {
+    setIsExplaining(true)
+    setExplanation('')
+    try {
+      const res = await aiApi.explain(code, language)
+      setExplanation(res.explanation)
+    } catch {
+      toast.error('Failed to analyze code')
+      setExplanation(null)
+    } finally {
+      setIsExplaining(false)
+    }
+  }
 
   const handleSessionEnded = useCallback(() => {
     toast.info("Session ended by mentor");
@@ -311,16 +328,29 @@ useWakeLock()
         {/* LEFT: CODE EDITOR */}
         <div className={`flex-1 flex-col border-r border-neutral-800 ${mobileTab === 'code' ? 'flex' : 'hidden md:flex'}`}>
           <div className="h-10 flex items-center justify-between px-3 border-b border-neutral-800 bg-[#0a0a0a] shrink-0">
-            <div className="flex items-center gap-2 text-xs text-neutral-400 font-mono">
-              <div className="w-2 h-2 rounded-full bg-brand-500" />
-              <span>index.{getLanguage(language).extension}</span>
-            </div>
-            <LanguagePicker
-              value={language}
-              onChange={handleLanguageChange}
-              disabled={role !== "mentor"}
-            />
-          </div>
+  <div className="flex items-center gap-2 text-xs text-neutral-400 font-mono">
+    <div className="w-2 h-2 rounded-full bg-brand-500" />
+    <span>index.{getLanguage(language).extension}</span>
+  </div>
+  
+  <div className="flex items-center gap-2">
+    {/* ✨ EXPLAIN BUTTON */}
+    <button
+      onClick={handleExplainCode}
+      disabled={isExplaining}
+      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-brand-500/10 hover:bg-brand-500/20 text-brand-400 rounded-md text-xs font-medium transition-colors"
+    >
+      {isExplaining ? <Loader2 size={14} className="animate-spin" /> : <span className="text-sm leading-none">✨</span>}
+      Explain Code
+    </button>
+
+    <LanguagePicker
+      value={language}
+      onChange={handleLanguageChange}
+      disabled={role !== "mentor"}
+    />
+  </div>
+</div>
           <div className="flex-1 overflow-hidden">
             <CodeEditor
               monacoLanguage={monacoLang}
@@ -383,6 +413,38 @@ useWakeLock()
           <span className="text-[10px] font-medium">Chat</span>
         </button>
       </div>
+
+      {/* ✨ AI EXPLANATION DRAWER */}
+{(explanation || isExplaining) && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end">
+    <div className="w-full max-w-md h-full bg-neutral-900 border-l border-neutral-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+      
+      <div className="h-16 flex items-center justify-between px-6 border-b border-neutral-800 shrink-0">
+        <div className="flex items-center gap-2 text-brand-400 font-semibold">
+          <span className="text-xl">✨</span> AI Code Explanation
+        </div>
+        <button onClick={() => { setExplanation(null); setIsExplaining(false) }} className="p-2 hover:bg-neutral-800 rounded-lg text-neutral-400">
+          <X size={20} />
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-6">
+        {isExplaining ? (
+          <div className="flex flex-col items-center justify-center h-full text-neutral-500 gap-3">
+            <Loader2 size={32} className="animate-spin text-brand-500" />
+            <p className="text-sm font-medium">Analyzing your code...</p>
+          </div>
+        ) : (
+          <div className="prose prose-invert prose-sm max-w-none">
+            <div className="whitespace-pre-wrap text-neutral-300 leading-relaxed text-sm">
+              {explanation}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
 
     </div>
   );

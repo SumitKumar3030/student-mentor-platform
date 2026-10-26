@@ -5,12 +5,16 @@ import { createServer } from 'http'
 import sessionsRouter from './routes/sessions.js'
 import { setupSocket } from './socket/index.js'
 import recordingsRouter from './routes/recordings.js'
+import aiRouter from './routes/ai.js'
+
 
 
 const app = express()
 
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }))
 app.use(express.json())
+
+
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
@@ -19,6 +23,9 @@ app.get('/health', (_req, res) => {
 app.use('/api/sessions', sessionsRouter)
 
 app.use('/api/recordings', recordingsRouter)
+
+// ...
+app.use('/api/ai', aiRouter)
 
 const server = createServer(app)
 

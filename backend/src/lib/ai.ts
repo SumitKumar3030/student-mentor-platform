@@ -71,3 +71,63 @@ export async function generateSessionSummary(
   console.error('❌ All AI models failed to generate a response.')
   return 'AI Summary temporarily unavailable due to high demand. Please try again later.'
 }
+
+// ============================================
+// 1. EXPLAIN CODE (Copilot Style)
+// ============================================
+export async function explainCode(code: string, language: string): Promise<string> {
+  if (!genAI) return 'AI unavailable (missing key).'
+
+  const prompt = `
+    You are an expert programming mentor. 
+    Explain the following ${language} code to a student.
+    Keep it concise, use bullet points, and highlight any potential bugs or improvements.
+    
+    Code:
+    \`\`\`${language}
+    ${code}
+    \`\`\`
+  `
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
+    const result = await model.generateContent(prompt)
+    return result.response.text()
+  } catch (error) {
+    console.error('Explain Code Error:', error)
+    return 'Failed to explain code. AI is currently busy.'
+  }
+}
+
+// ============================================
+// 2. CHAT WITH AI (Contextual)
+// ============================================
+export async function chatWithAI(
+  userMessage: string, 
+  currentCode: string, 
+  language: string
+): Promise<string> {
+  if (!genAI) return 'AI unavailable (missing key).'
+
+  const prompt = `
+    You are an AI teaching assistant in a live coding session.
+    The student is asking you a question. Answer directly, helpfully, and concisely.
+    If relevant, refer to the current code context provided below.
+    
+    Current Code Context:
+    \`\`\`${language}
+    ${currentCode}
+    \`\`\`
+    
+    Student's Question: ${userMessage}
+  `
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
+    const result = await model.generateContent(prompt)
+    return result.response.text()
+  } catch (error) {
+    console.error('Chat AI Error:', error)
+    return 'Sorry, my AI brain is taking a quick break. Please try again.'
+  }
+}

@@ -101,3 +101,12 @@ export const sessionsApi = {
       }
     }>(`/api/sessions/history/${userId}`),
 }
+
+// AI API
+export const aiApi = {
+  explain: (code: string, language: string) =>
+    request<{ explanation: string }>('/api/ai/explain', {
+      method: 'POST',
+      body: JSON.stringify({ code, language }),
+    }),
+}

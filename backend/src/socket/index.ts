@@ -1,6 +1,7 @@
 import type { Server as HTTPServer } from "http";
 import { Server, Socket } from "socket.io";
 import { supabase } from "../lib/supabase.js";
+import { chatWithAI } from '../lib/ai.js'
 
 interface JoinPayload {
   sessionId: string;
@@ -105,36 +106,71 @@ export function setupSocket(server: HTTPServer) {
     // ------------------------------------------------
     // CHAT MESSAGE
     // ------------------------------------------------
-    socket.on("chat_message", async (payload: ChatMessagePayload) => {
-      const { sessionId, userId, name, content } = payload;
-      if (!content.trim()) return;
+        socket.on('chat_message', async (payload: ChatMessagePayload) => {
+      const { sessionId, userId, name, content } = payload
+      if (!content.trim()) return
 
-      // Persist to DB
+      // 1. Save user's message to DB
       const { data, error } = await supabase
-        .from("messages")
-        .insert({
-          session_id: sessionId,
-          user_id: userId,
-          content: content.trim(),
-        })
+        .from('messages')
+        .insert({ session_id: sessionId, user_id: userId, content: content.trim() })
         .select()
-        .single();
+        .single()
 
       if (error) {
-        console.error("chat insert error:", error);
-        return;
+        console.error('chat insert error:', error)
+        return
       }
 
-      // Broadcast to everyone in room (including sender for confirmation)
-      io.to(sessionId).emit("chat_message", {
+      // Broadcast user's message
+      io.to(sessionId).emit('chat_message', {
         id: data.id,
         sessionId: data.session_id,
         userId: data.user_id,
         name,
         content: data.content,
         createdAt: data.created_at,
-      });
-    });
+      })
+
+      // 🤖 CHECK FOR @AI MENTION
+      if (content.trim().toLowerCase().startsWith('@ai')) {
+        const userQuery = content.replace(/@ai/gi, '').trim()
+        
+        // Let the room know the AI is typing
+        io.to(sessionId).emit('ai_typing', { isTyping: true })
+
+        // Fetch the latest code snapshot for context
+        const { data: snapshot } = await supabase
+          .from('code_snapshots')
+          .select('code, language')
+          .eq('session_id', sessionId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        const currentCode = snapshot?.code || 'No code written yet.'
+        const currentLang = snapshot?.language || 'javascript'
+
+        // Get AI Response
+        const aiResponse = await chatWithAI(userQuery, currentCode, currentLang)
+
+        // Save AI message to DB (using a special "AI" user ID or system ID)
+        // For now, we will just broadcast it without saving to DB to avoid foreign key errors,
+        // OR we can use the mentor's user ID but label it as "AI Mentor".
+        // Let's just broadcast it for now to keep it simple.
+        
+        io.to(sessionId).emit('ai_typing', { isTyping: false })
+        
+        io.to(sessionId).emit('chat_message', {
+          id: crypto.randomUUID(), // temporary ID
+          sessionId,
+          userId: 'ai-mentor-id',
+          name: '✨ AI Mentor',
+          content: aiResponse,
+          createdAt: new Date().toISOString(),
+        })
+      }
+    })
 
 
     // ------------------------------------------------
