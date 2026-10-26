@@ -42,7 +42,7 @@ export async function generateSessionSummary(
   `
 
   // We will try the fastest model, then fallback to the older stable one
-  const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash-latest']
+  const modelsToTry = ['gemini-3.8-flash', 'gemini-2.5-flash']
   
   for (const modelName of modelsToTry) {
     try {
@@ -90,7 +90,7 @@ export async function explainCode(code: string, language: string): Promise<strin
   `
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' })
     const result = await model.generateContent(prompt)
     return result.response.text()
   } catch (error) {
@@ -123,7 +123,7 @@ export async function chatWithAI(
   `
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' })
     const result = await model.generateContent(prompt)
     return result.response.text()
   } catch (error) {

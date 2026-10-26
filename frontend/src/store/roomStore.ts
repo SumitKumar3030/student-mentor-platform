@@ -11,6 +11,7 @@ interface RoomState {
   code: string
   language: string
   remoteCursors: RemoteCursor[]
+  currentSessionId: string | null
   setCode: (code: string) => void
   setLanguage: (language: string) => void
   setRemoteCursor: (cursor: RemoteCursor) => void
@@ -23,6 +24,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   code: '',
   language: 'javascript',
   remoteCursors: [],
+  currentSessionId: null,
 
   setCode: (code) => set({ code }),
 
@@ -44,5 +46,5 @@ export const useRoomStore = create<RoomState>((set) => ({
 
   clearAllRemoteCursors: () => set({ remoteCursors: [] }),
 
-  reset: () => set({ code: '', language: 'javascript', remoteCursors: [] }),
+  reset: () => set({ code: '', language: 'javascript', remoteCursors: [], currentSessionId: null }),
 }))
