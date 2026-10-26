@@ -1,18 +1,22 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
+// Make sure the API key is loaded
+const apiKey = process.env.GEMINI_API_KEY
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null
 
 export async function generateSessionSummary(
   chatMessages: { name: string; content: string }[],
   finalCode: string,
   language: string
 ): Promise<string> {
-  if (!process.env.GEMINI_API_KEY) {
-    return 'AI Summary unavailable (missing API key).'
+  if (!genAI) {
+    console.error('❌ GEMINI_API_KEY is missing in Render environment variables.')
+    return 'AI Summary unavailable (missing API key on server).'
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    // Using gemini-pro as it is universally available on the free tier
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
     const chatContext = chatMessages
       .map((m) => `${m.name}: ${m.content}`)
@@ -42,9 +46,13 @@ export async function generateSessionSummary(
     `
 
     const result = await model.generateContent(prompt)
-    return result.response.text()
+    const text = result.response.text()
+    
+    if (!text) throw new Error('AI returned empty response')
+    
+    return text
   } catch (error) {
-    console.error('AI Generation Error:', error)
-    return 'Failed to generate AI summary.'
+    console.error('❌ AI Generation Error:', error)
+    return 'Failed to generate AI summary. (Check Render logs for details).'
   }
 }
