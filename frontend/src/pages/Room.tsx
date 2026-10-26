@@ -20,6 +20,7 @@ import { connectSocket } from "@/lib/socket";
 import { useRecording } from "@/hooks/useRecording";
 import RecordingControls from "@/components/room/RecordingControls";
 import PairPulseLogo from "@/components/PairPulseLogo";
+import { useWakeLock } from '@/hooks/useWakeLock'
 
 export default function Room() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -32,6 +33,21 @@ export default function Room() {
   const [role, setRole] = useState<"mentor" | "student" | null>(null);
   const [copied, setCopied] = useState(false);
   const [mobileTab, setMobileTab] = useState<"code" | "video" | "chat">("code");
+
+  // Inside the component:
+useWakeLock()
+
+    // 🛡️ HARDENING: Tab close warning
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Chrome requires returnValue to be set
+      e.preventDefault()
+      e.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [])
 
   // Load session
   useEffect(() => {
