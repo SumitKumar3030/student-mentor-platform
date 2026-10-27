@@ -44,13 +44,13 @@ export default function AuthLayout({
 
         {/* Small IP footer for auth pages */}
         <div className="absolute bottom-6 flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
-          <span className="text-[15px] text-neutral-500 uppercase tracking-widest font-bold">
+          <span className="text-[15px] text-neutral-500 tracking-widest font-bold">
             An IP by
           </span>
           <img
             src="/itspossible-logo.png"
             alt="It'sPossible ip"
-            className="h-5 object-contain"
+            className="h-8 object-contain "
           />
         </div>
       </div>
