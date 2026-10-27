@@ -6,9 +6,9 @@ async function callGroq(prompt: string): Promise<string> {
   try {
     const completion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
-      model: 'llama-3.3-70b-versatile', // Super fast, super smart
+      model: 'openai/gpt-oss-120b', // Groq's current recommended model
       temperature: 0.5,
-      max_tokens: 500,
+      max_tokens: 1000,
     })
     return completion.choices[0]?.message?.content || 'No response generated.'
   } catch (error) {
