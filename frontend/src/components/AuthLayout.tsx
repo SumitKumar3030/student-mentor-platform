@@ -25,7 +25,7 @@ export default function AuthLayout({
             className="inline-flex items-center gap-2 mb-10 group antialiased"
           >
             <PairPulseLogo className="w-9 h-9 group-hover:scale-105 transition-transform will-change-transform" />
-            <span className="text-2xl font-bold text-white tracking-tight">
+            <span className="text-2xl font-bold text-white tracking-tight flex items-center gap-1">
               PairPulse
             </span>
           </Link>
