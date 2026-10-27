@@ -44,7 +44,7 @@ export default function AuthLayout({
 
         {/* Small IP footer for auth pages */}
         <div className="absolute bottom-6 flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
-          <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">
+          <span className="text-[15px] text-neutral-500 uppercase tracking-widest font-bold">
             An IP by
           </span>
           <img
