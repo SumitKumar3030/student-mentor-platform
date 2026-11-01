@@ -45,7 +45,7 @@ export default function AuthLayout({ title, subtitle, children, footer }: Props)
       </div>
 
       {/* RIGHT SIDE - DARK & ANIMATED */}
-      <div className="hidden lg:flex flex-1 relative bg-[#0a0a0a] items-center justify-center overflow-hidden rounded-2xl">
+      <div className="hidden lg:flex flex-1 relative bg-[#0a0a0a] items-center justify-center overflow-hidden rounded-2xl p-2">
         
         {/* Animated Background Orbs */}
         <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-brand-500/20 rounded-full blur-[100px] animate-pulse" />
