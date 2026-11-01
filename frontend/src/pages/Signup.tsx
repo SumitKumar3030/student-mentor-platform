@@ -68,7 +68,7 @@ export default function Signup() {
             {...register('name')}
             type="text"
             placeholder="Jane Doe"
-            className="w-full px-3 py-2.5 bg-neutral-800/50 border border-neutral-700 rounded-lg focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors placeholder:text-neutral-500"
+            className="w-full px-3 py-2.5 border border-neutral-700 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-violet-500 transition-colors placeholder:text-neutral-500"
           />
           {errors.name && (
             <p className="mt-1 text-xs text-red-400">{errors.name.message}</p>
@@ -96,7 +96,7 @@ export default function Signup() {
             {...register('password')}
             type="password"
             placeholder="At least 8 characters"
-            className="w-full px-3 py-2.5 border border-neutral-700 rounded-lg focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors placeholder:text-neutral-500"
+            className="w-full px-3 py-2.5 border border-neutral-700 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-violet-500 transition-colors placeholder:text-neutral-500"
           />
           {errors.password && (
             <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>

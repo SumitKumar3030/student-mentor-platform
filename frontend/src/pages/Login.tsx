@@ -52,7 +52,7 @@ const redirect = params.get('redirect') || '/dashboard'
       footer={
         <>
           Don't have an account?{' '}
-          <Link to="/signup" className="text-violet-400 hover:text-violet-300 font-medium">
+          <Link to="/signup" className="text-slate-800 hover:text-neutral-900 font-medium">
             Sign up
           </Link>
         </>
@@ -65,7 +65,7 @@ const redirect = params.get('redirect') || '/dashboard'
             {...register('email')}
             type="email"
             placeholder="you@example.com"
-            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
+            className="w-full px-4 py-3 bg-white border border-slate-400 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
           />
           {errors.email && (
             <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>
@@ -86,7 +86,7 @@ const redirect = params.get('redirect') || '/dashboard'
             {...register('password')}
             type="password"
             placeholder="••••••••"
-            className="w-full px-3 py-2.5 border border-neutral-700 rounded-lg focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors placeholder:text-neutral-700"
+            className="w-full px-3 py-2.5 border border-slate-400 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-violet-500 transition-colors placeholder:text-neutral-700"
           />
           {errors.password && (
             <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>
