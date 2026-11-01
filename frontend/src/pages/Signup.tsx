@@ -82,7 +82,7 @@ export default function Signup() {
             {...register('email')}
             type="email"
             placeholder="you@example.com"
-            className="w-full px-3 py-2.5 bg-neutral-800/50 border border-neutral-700 rounded-lg focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors placeholder:text-neutral-500"
+            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
           />
           {errors.email && (
             <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>
@@ -106,7 +106,7 @@ export default function Signup() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
+          className="w-full py-3.5 bg-gradient-to-r from-[#00C6FF] to-[#0072FF] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white font-semibold transition-all shadow-lg shadow-brand-500/25"
         >
           {loading ? 'Creating account...' : 'Create account'}
         </button>
