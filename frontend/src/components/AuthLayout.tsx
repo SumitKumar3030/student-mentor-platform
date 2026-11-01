@@ -38,7 +38,7 @@ export default function AuthLayout({ title, subtitle, children, footer }: Props)
         </div>
 
         {/* Brand IP Footer (Absolute to the bottom of the left panel) */}
-        <div className="absolute bottom-8 left-6 md:left-12 lg:left-24 flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity">
+        <div className="absolute bottom-8 left-6 md:left-12 lg:left-24 flex items-center gap-2 opacity-90 hover:opacity-100 transition-opacity">
           <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">An IP by</span>
           <img src="/itspossible-logo.png" alt="It'sPossible ip" className="h-6 object-contain grayscale" />
         </div>
