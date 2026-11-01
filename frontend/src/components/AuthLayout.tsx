@@ -19,7 +19,7 @@ export default function AuthLayout({ title, subtitle, children, footer }: Props)
           {/* Logo */}
           <Link to="/" className="inline-flex items-center gap-2 mb-12 group">
             <PairPulseLogo className="w-8 h-8" />
-            <span className="text-xl font-bold tracking-tight text-slate-900">PairPulse</span>
+            <span className="text-xl font-bold text-slate-900">PairPulse</span>
           </Link>
 
           {/* Headings */}
@@ -45,7 +45,7 @@ export default function AuthLayout({ title, subtitle, children, footer }: Props)
       </div>
 
       {/* RIGHT SIDE - DARK & ANIMATED */}
-      <div className="hidden lg:flex flex-1 relative bg-[#0a0a0a] items-center justify-center overflow-hidden">
+      <div className="hidden lg:flex flex-1 relative bg-[#0a0a0a] items-center justify-center overflow-hidden rounded-2xl">
         
         {/* Animated Background Orbs */}
         <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-brand-500/20 rounded-full blur-[100px] animate-pulse" />
