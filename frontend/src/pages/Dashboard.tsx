@@ -430,6 +430,61 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+                  {/* APP INFO & FEATURE HIGHLIGHTS */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-200">
+              <div className="flex items-start gap-3 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
+                  <Video size={18} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">HD Video Calling</h4>
+                  <p className="text-xs text-slate-500 mt-1">Peer-to-peer WebRTC video with screen sharing.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                <div className="p-2 bg-purple-50 text-purple-600 rounded-lg shrink-0">
+                  <Sparkles size={18} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">AI Copilot</h4>
+                  <p className="text-xs text-slate-500 mt-1">Groq-powered code explanations and session summaries.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                <div className="p-2 bg-green-50 text-green-600 rounded-lg shrink-0">
+                  <MonitorPlay size={18} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Instant Recording</h4>
+                  <p className="text-xs text-slate-500 mt-1">Capture your screen and share instantly via link.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* FOOTER */}
+            <footer className="pt-8 pb-4 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col items-center md:items-start gap-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <PairPulseLogo className="w-5 h-5" />
+                  <span className="text-sm font-bold text-slate-900">PairPulse</span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  © {new Date().getFullYear()} PairPulse. All rights reserved.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
+                <a href="#" className="hover:text-brand-600 transition-colors">Privacy Policy</a>
+                <a href="#" className="hover:text-brand-600 transition-colors">Terms of Service</a>
+                <a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-slate-900 transition-colors">GitHub</a>
+              </div>
+
+              <div className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
+                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">An IP by</span>
+                <img src="/itspossible-logo.png" alt="It'sPossible ip" className="h-5 object-contain grayscale hover:grayscale-0 transition-all" />
+              </div>
+            </footer>
+
     </div>
   );
 }
