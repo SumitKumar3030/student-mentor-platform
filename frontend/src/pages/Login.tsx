@@ -1,49 +1,49 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { toast } from 'sonner'
-import { supabase } from '@/lib/supabase'
-import AuthLayout from '@/components/AuthLayout'
-import { useSearchParams } from 'react-router-dom'
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import AuthLayout from "@/components/AuthLayout";
+import { useSearchParams } from "react-router-dom";
 
 const schema = z.object({
-  email: z.string().email('Invalid email'),
-  password: z.string().min(1, 'Password is required'),
-})
+  email: z.string().email("Invalid email"),
+  password: z.string().min(1, "Password is required"),
+});
 
-type FormData = z.infer<typeof schema>
+type FormData = z.infer<typeof schema>;
 
 export default function Login() {
-  const navigate = useNavigate()
-  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const [params] = useSearchParams()
-const redirect = params.get('redirect') || '/dashboard'
+  const [params] = useSearchParams();
+  const redirect = params.get("redirect") || "/dashboard";
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormData>({ resolver: zodResolver(schema) })
+  } = useForm<FormData>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (data: FormData) => {
-    setLoading(true)
+    setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
-    })
-    setLoading(false)
+    });
+    setLoading(false);
 
     if (error) {
-      toast.error(error.message)
-      return
+      toast.error(error.message);
+      return;
     }
 
-    toast.success('Welcome back!')
-    navigate(redirect, { replace: true })
-  }
+    toast.success("Welcome back!");
+    navigate(redirect, { replace: true });
+  };
 
   return (
     <AuthLayout
@@ -51,8 +51,11 @@ const redirect = params.get('redirect') || '/dashboard'
       subtitle="Sign in to continue to your workspace"
       footer={
         <>
-          Don't have an account?{' '}
-          <Link to="/signup" className="text-slate-800 hover:text-neutral-900 font-medium">
+          Don't have an account?{" "}
+          <Link
+            to="/signup"
+            className="text-slate-800 hover:text-neutral-900 font-medium"
+          >
             Sign up
           </Link>
         </>
@@ -62,7 +65,7 @@ const redirect = params.get('redirect') || '/dashboard'
         <div>
           <label className="block text-sm font-medium mb-1.5">Email</label>
           <input
-            {...register('email')}
+            {...register("email")}
             type="email"
             placeholder="you@example.com"
             className="w-full px-4 py-3 bg-white border border-slate-400 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
@@ -77,19 +80,21 @@ const redirect = params.get('redirect') || '/dashboard'
             <label className="block text-sm font-medium">Password</label>
             <Link
               to="/forgot-password"
-              className="text-xs text-violet-400 hover:text-violet-300"
+              className="text-xs text-slate-800 hover:text-slate-900"
             >
               Forgot?
             </Link>
           </div>
           <input
-            {...register('password')}
+            {...register("password")}
             type="password"
             placeholder="••••••••"
-            className="w-full px-3 py-2.5 border border-slate-400 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-violet-500 transition-colors placeholder:text-neutral-700"
+            className="w-full px-4 py-3 bg-white border border-slate-400 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all"
           />
           {errors.password && (
-            <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>
+            <p className="mt-1 text-xs text-red-400">
+              {errors.password.message}
+            </p>
           )}
         </div>
 
@@ -98,9 +103,9 @@ const redirect = params.get('redirect') || '/dashboard'
           disabled={loading}
           className="w-full py-3.5 bg-gradient-to-r from-[#00C6FF] to-[#0072FF] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-white font-semibold transition-all shadow-lg shadow-brand-500/25"
         >
-          {loading ? 'Signing in...' : 'Sign in'}
+          {loading ? "Signing in..." : "Sign in"}
         </button>
       </form>
     </AuthLayout>
-  )
+  );
 }
